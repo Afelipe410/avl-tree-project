@@ -2,5 +2,5 @@
 First data structures project 2025 - II
 
 ## Authors  
-- Andrés Felipe Giraldo Rojas(47424) —  Systems and Computer Engineering Student_  
-- Miguel Cruz() — Systems and Computer Engineering Student_  
+- Andrés Felipe Giraldo Rojas(47424) —  Systems and Computer Engineering Student
+- Miguel Cruz() — Systems and Computer Engineering Student
