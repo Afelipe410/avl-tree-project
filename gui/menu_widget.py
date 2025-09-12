@@ -1,39 +1,33 @@
-# gui/menu_widget.py
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel
 from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QFont
 
 class MenuWidget(QWidget):
+    # Señales que MainWindow escucha
     start_signal = pyqtSignal()
     exit_signal = pyqtSignal()
 
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-    def init_ui(self):
-        layout = QVBoxLayout()
+        # Layout principal
+        layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Títulos
-        title = QLabel(" Proyecto AVL")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 50px; font-weight: bold;")
-        layout.addWidget(title)
+        # Título
+        lbl = QLabel("Proyecto AVL - Estructuras de Datos")
+        lbl.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl)
 
-        subtitle = QLabel(" Andrés Felipe Giraldo - Miguel Angel Cruz")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("font-size: 25px;")
-        layout.addWidget(subtitle)
+        # Botón iniciar
+        btn_start = QPushButton("Jugar")
+        btn_start.setMinimumHeight(40)
+        btn_start.clicked.connect(self.start_signal.emit)
+        layout.addWidget(btn_start)
 
-        # Botones
-        start_btn = QPushButton("Iniciar Juego")
-        start_btn.setFixedSize(500, 50)
-        start_btn.clicked.connect(self.start_signal)
-        layout.addWidget(start_btn)
-
-        exit_btn = QPushButton("Salir")
-        exit_btn.setFixedSize(500, 50)
-        exit_btn.clicked.connect(self.exit_signal)
-        layout.addWidget(exit_btn)
-
-        self.setLayout(layout)
+        # Botón salir
+        btn_exit = QPushButton("Salir")
+        btn_exit.setMinimumHeight(40)
+        btn_exit.clicked.connect(self.exit_signal.emit)
+        layout.addWidget(btn_exit)

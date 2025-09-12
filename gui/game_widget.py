@@ -1,175 +1,298 @@
-# gui/game_widget.py
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import QTimer, Qt, QPoint
-from PyQt6.QtGui import QPainter, QColor, QPen, QBrush
+from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QPoint
+from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QLinearGradient
 import math
 
 class GameWidget(QWidget):
+    hit_signal = pyqtSignal()
+
     def __init__(self, config: dict):
         super().__init__()
         self.config = config or {}
+        self.speed = self.config.get("game", {}).get("speed", 6)
 
-        # Configuración del juego
-        self.refresh_ms   = self.config.get("game", {}).get("refresh_time", 50)
-        self.speed_px     = self.config.get("game", {}).get("speed", 5)
-        self.jump_power   = self.config.get("game", {}).get("jump_height", 80)
-        self.car_color_on = QColor(self.config.get("game", {}).get("car_color", "red"))
-        self.car_color_jump = QColor("#00C853")  
-
-        self.setMinimumSize(800, 420)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-
-        # Estado del carro
+        # Carro
         self.car_x = 80
-        self.car_width  = 120
-        self.car_height = 40
-        self.cabin_height = 22
-        self.wheel_r = 14
-        self.wheel_angle_deg = 0.0
+        self.car_lane = 1  # carril inicial
+        self.lane_y = [120, 200, 280, 360]  # 4 carriles
+        self.car_w, self.car_h = 100, 40
+        self.car_color = QColor("#1E40AF")  # azul más bonito
+        self.car_color_jump = QColor("#107EB9")  # verde cuando salta
 
-        # Carriles
-        self.road_h = 120
-        self._recompute_geometry()
-        self.lane_idx = 1
-        self._set_car_ground_y_by_lane()
+        # Ruedas
+        self.wheel_r = 13
+        self.wheel_angle = 0.0
 
         # Salto
-        self.is_jumping = False
-        self.vy = 0.0
-        self.gravity = 1.9
+        self.jumping = False
+        self.jump_height = 60
+        self.jump_progress = 0
+        self.jump_max = 24  # pasos del salto
 
-        # Scroll de carretera
-        self.road_scroll = 0.0
-        self.stripe_w = 40
-        self.stripe_gap = 30
-        self.stripe_h = 6
+        # Obstáculos
+        self.obstacles = []
+        self.lives = 10
 
-        # Timer
+        # Animación de líneas de carretera
+        self.road_line_offset = 0
+
+        # Timer de juego
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self._tick)
-        self.timer.start(self.refresh_ms)
+        self.timer.timeout.connect(self.update_game)
+        self.timer.start(30)
 
-    def _recompute_geometry(self):
-        self.road_y = self.height() - self.road_h
-        top = self.road_y - 140
-        mid = self.road_y - 100
-        bot = self.road_y - 60
-        self.lanes = [top, mid, bot]
+    def set_obstacles(self, obs: list):
+        """Recibe lista de obstáculos desde AVLTree"""
+        self.obstacles = [dict(o) for o in obs]
 
-    def _set_car_ground_y_by_lane(self):
-        self.car_ground_y = self.lanes[self.lane_idx]
-        self.car_y = self.car_ground_y
+    def update_game(self):
+        # Animación de líneas de carretera
+        self.road_line_offset = (self.road_line_offset + self.speed) % 40
 
-    def _tick(self):
-        self.road_scroll = (self.road_scroll + self.speed_px) % (self.stripe_w + self.stripe_gap)
+        # COMENTADO: Los obstáculos ahora se quedan quietos en sus posiciones
+        # Mover obstáculos hacia la izquierda
+        # for ob in self.obstacles:
+        #     ob["x_world"] -= self.speed
+
+        # Control del salto
+        if self.jumping:
+            self.jump_progress += 1
+            if self.jump_progress >= self.jump_max:
+                self.jumping = False
+                self.jump_progress = 0
+
+        # Rotación de las ruedas
         circ = 2 * math.pi * self.wheel_r
         if circ > 0:
-            self.wheel_angle_deg = (self.wheel_angle_deg + (self.speed_px / circ) * 360.0) % 360.0
+            self.wheel_angle = (self.wheel_angle + (self.speed / circ) * 360) % 360
 
-        if self.is_jumping:
-            self.vy += self.gravity
-            self.car_y += self.vy
-            if self.car_y >= self.car_ground_y:
-                self.car_y = self.car_ground_y
-                self.is_jumping = False
-                self.vy = 0.0
+        # Colisiones (solo si no está saltando)
+        if not self.jumping:
+            car_rect = (self.car_x, self.car_y() - self.car_h,
+                        self.car_w, self.car_h)
+            for ob in list(self.obstacles):
+                ob_rect = (ob["x_world"], self.lane_y[ob["lane_idx"]] - ob["height"],
+                           ob["width"], ob["height"])
+                if self.check_collision(car_rect, ob_rect):
+                    self.lives -= 1
+                    self.hit_signal.emit()
+                    self.obstacles.remove(ob)
+                    break
 
         self.update()
 
-    def resizeEvent(self, _event):
-        self._recompute_geometry()
-        self._set_car_ground_y_by_lane()
+    def car_y(self):
+        """Posición Y del carro con offset de salto"""
+        base = self.lane_y[self.car_lane]
+        if not self.jumping:
+            return base
+        # parabólica simple
+        peak = self.jump_max // 2
+        d = self.jump_progress - peak
+        return base - int(self.jump_height - (d * d * self.jump_height) / (peak * peak))
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key.Key_Up:
-            self.lane_idx = max(0, self.lane_idx - 1)
-            self._set_car_ground_y_by_lane()
-            if not self.is_jumping:
-                self.car_y = self.car_ground_y
-        elif key == Qt.Key.Key_Down:
-            self.lane_idx = min(2, self.lane_idx + 1)
-            self._set_car_ground_y_by_lane()
-            if not self.is_jumping:
-                self.car_y = self.car_ground_y
-        elif key == Qt.Key.Key_Space:
-            if not self.is_jumping:
-                self.is_jumping = True
-                self.vy = -math.sqrt(2 * self.gravity * max(40, self.jump_power))
-        elif key == Qt.Key.Key_Escape:
-            # Regresar al menú si presiona ESC
-            parent = self.parent()
-            if parent:
-                parent.setCurrentIndex(0)
+    def check_collision(self, r1, r2):
+        x1, y1, w1, h1 = r1
+        x2, y2, w2, h2 = r2
+        return not (x1+w1 < x2 or x1 > x2+w2 or
+                    y1+h1 < y2 or y1 > y2+h2)
 
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key.Key_Up and self.car_lane > 0:
+            self.car_lane -= 1
+        elif e.key() == Qt.Key.Key_Down and self.car_lane < len(self.lane_y)-1:
+            self.car_lane += 1
+        elif e.key() == Qt.Key.Key_Space and not self.jumping:
+            self.jumping = True
+            self.jump_progress = 0
+        elif e.key() == Qt.Key.Key_Escape:
+            if self.parent() and hasattr(self.parent(), "show_menu"):
+                self.parent().show_menu()
+
+    def mousePressEvent(self, event):
+        """Asegurar foco cuando se hace click en el widget"""
         self.setFocus()
-
+        super().mousePressEvent(event)
+        
     def paintEvent(self, _event):
         p = QPainter(self)
-        # Cielo
-        p.fillRect(self.rect(), QColor("#87CEEB"))
-        # Carretera
-        p.fillRect(0, self.road_y, self.width(), self.road_h, QColor("#3C3C3C"))
-        # Rayas
-        p.setBrush(QBrush(QColor("#EAEAEA")))
-        p.setPen(Qt.PenStyle.NoPen)
-        stripe_y = self.road_y + self.road_h // 2 - self.stripe_h // 2
-        x = -self.road_scroll
-        while x < self.width():
-            p.fillRect(int(x), stripe_y, self.stripe_w, self.stripe_h, QColor("#EAEAEA"))
-            x += self.stripe_w + self.stripe_gap
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Fondo gris carretera con césped a los lados
+        p.fillRect(self.rect(), QColor("#2D5016"))  # césped verde
+        
+        # Carretera de asfalto
+        road_gradient = QLinearGradient(0, 0, 0, self.height())
+        road_gradient.setColorAt(0, QColor("#404040"))
+        road_gradient.setColorAt(1, QColor("#2A2A2A"))
+        p.fillRect(0, 80, self.width(), 320, QBrush(road_gradient))
+
+        # Dibujar carriles con líneas animadas más realistas
+        self._draw_road_lines(p)
+
         # Carro
         self._draw_car(p)
 
-    def _draw_car(self, p: QPainter):
-        body_color = self.car_color_jump if self.is_jumping else self.car_color_on
-        chasis_y = int(self.car_y)
-        chasis_h = self.car_height
-        chasis_rect = (self.car_x, chasis_y - chasis_h, self.car_width, chasis_h)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QBrush(body_color))
-        p.fillRect(*chasis_rect, body_color)
-        # Cabina
-        cabin_w = int(self.car_width * 0.5)
-        cabin_h = self.cabin_height
-        cabin_x = self.car_x + int(self.car_width * 0.22)
-        cabin_y = chasis_y - chasis_h - cabin_h + 4
-        p.fillRect(cabin_x, cabin_y, cabin_w, cabin_h, body_color)
-        # Ventana
-        win_margin = 4
-        p.fillRect(cabin_x + win_margin, cabin_y + win_margin,
-                   cabin_w - 2 * win_margin, cabin_h - 2 * win_margin,
-                   QColor("#B3E5FC"))
-        # Parachoques y luces
-        bumper_h = 6
-        p.fillRect(self.car_x - 6, chasis_y - chasis_h + 10, 6, chasis_h - 20, QColor("#222"))
-        p.fillRect(self.car_x + self.car_width, chasis_y - chasis_h + 12, 6, chasis_h - 24, QColor("#222"))
-        p.fillRect(self.car_x + self.car_width + 6, chasis_y - chasis_h + 18, 6, 12, QColor("#FFD54F"))
-        # Ruedas
-        wheel_y = chasis_y - 6
-        front_cx = self.car_x + int(self.car_width * 0.78)
-        back_cx  = self.car_x + int(self.car_width * 0.22)
-        self._draw_wheel(p, back_cx, wheel_y, self.wheel_r, self.wheel_angle_deg)
-        self._draw_wheel(p, front_cx, wheel_y, self.wheel_r, self.wheel_angle_deg)
-        # Sombra
-        p.setBrush(QBrush(QColor(0, 0, 0, 40)))
-        p.setPen(Qt.PenStyle.NoPen)
-        p.drawEllipse(QPoint(self.car_x + self.car_width // 2, wheel_y + 6),
-                      self.car_width // 2 - 10, 8)
+        # Obstáculos
+        self._draw_obstacles(p)
 
-    def _draw_wheel(self, p: QPainter, cx: int, cy: int, r: int, angle_deg: float):
-        p.setBrush(QBrush(QColor("#111111")))
-        p.setPen(QPen(QColor("#000000")))
-        p.drawEllipse(cx - r, cy - r, 2 * r, 2 * r)
-        rim_r = int(r * 0.65)
-        p.setBrush(QBrush(QColor("#BDBDBD")))
-        p.setPen(QPen(QColor("#555555")))
-        p.drawEllipse(cx - rim_r, cy - rim_r, 2 * rim_r, 2 * rim_r)
+        # HUD
+        p.setPen(QColor("white"))
+        font = p.font()
+        font.setBold(True)
+        font.setPointSize(12)
+        p.setFont(font)
+        p.drawText(10, 25, f"Vidas: {self.lives}")
+
+    def _draw_road_lines(self, p: QPainter):
+        """Dibuja líneas de carretera más realistas y animadas"""
+        # Bordes de la carretera
+        p.setPen(QPen(QColor("white"), 4))
+        p.drawLine(0, 80, self.width(), 80)  # borde superior
+        p.drawLine(0, 400, self.width(), 400)  # borde inferior
+        
+        # Líneas divisorias entre carriles (blancas discontinuas)
+        p.setPen(QPen(QColor("white"), 3))
+        for i in range(len(self.lane_y)-1):
+            y = (self.lane_y[i] + self.lane_y[i+1]) // 2
+            self._draw_dashed_line(p, y)
+        
+        # Línea central amarilla (más gruesa)
+        center_y = (self.lane_y[1] + self.lane_y[2]) // 2
+        p.setPen(QPen(QColor("#FFD700"), 4))
+        self._draw_dashed_line(p, center_y, is_center=True)
+
+    def _draw_dashed_line(self, p: QPainter, y: int, is_center=False):
+        """Dibuja líneas discontinuas animadas"""
+        dash_length = 30 if is_center else 25
+        gap_length = 15 if is_center else 12
+        
+        x = -self.road_line_offset
+        while x < self.width():
+            if x + dash_length > 0:
+                p.drawLine(max(0, x), y, min(self.width(), x + dash_length), y)
+            x += dash_length + gap_length
+
+    def _draw_car(self, p: QPainter):
+        y = self.car_y()
+        color = self.car_color_jump if self.jumping else self.car_color
+
+        # Sombra del carro (solo si no está saltando alto)
+        if not self.jumping or self.jump_progress < 8:
+            shadow_y = self.lane_y[self.car_lane] + 3
+            p.setBrush(QBrush(QColor(0, 0, 0, 80)))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(self.car_x + 5, shadow_y - 15, self.car_w - 10, 20)
+
+        # Chasis principal con gradiente
+        gradient = QLinearGradient(0, y - self.car_h, 0, y)
+        gradient.setColorAt(0, color.lighter(140))
+        gradient.setColorAt(0.5, color)
+        gradient.setColorAt(1, color.darker(120))
+        
+        p.setBrush(QBrush(gradient))
+        p.setPen(QPen(color.darker(150), 2))
+        p.drawRoundedRect(self.car_x, y - self.car_h, self.car_w, self.car_h, 6, 6)
+
+        # Cabina con ventanas
+        cabin_w, cabin_h = 50, 25
+        cabin_x = self.car_x + 20
+        cabin_y = y - self.car_h - cabin_h + 5
+        
+        # Techo
+        p.setBrush(QBrush(color.darker(130)))
+        p.setPen(QPen(color.darker(160), 1))
+        p.drawRoundedRect(cabin_x, cabin_y, cabin_w, cabin_h, 4, 4)
+        
+        # Parabrisas
+        p.setBrush(QBrush(QColor("#87CEEB")))  # azul cielo
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawRoundedRect(cabin_x + 5, cabin_y + 3, cabin_w - 10, cabin_h - 6, 3, 3)
+
+        # Ventanas laterales
+        p.setBrush(QBrush(QColor("#87CEEB").darker(110)))
+        p.drawRect(cabin_x - 6, cabin_y + 8, 10, 15)  # ventana izquierda
+        p.drawRect(cabin_x + cabin_w - 4, cabin_y + 8, 10, 15)  # ventana derecha
+
+        # Parachoques y detalles
+        p.setBrush(QBrush(QColor("#606060")))
+        p.drawRect(self.car_x + self.car_w, y - self.car_h + 8, 6, 24)  # parachoques delantero
+        
+        # Faros delanteros
+        p.setBrush(QBrush(QColor("#FFFACD")))  # amarillo claro
+        p.setPen(QPen(QColor("#DAA520"), 1))
+        p.drawEllipse(self.car_x + self.car_w + 2, y - self.car_h + 10, 8, 8)
+        p.drawEllipse(self.car_x + self.car_w + 2, y - self.car_h + 22, 8, 8)
+
+        # Luces traseras
+        p.setBrush(QBrush(QColor("#DC143C")))  # rojo
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawEllipse(self.car_x - 3, y - self.car_h + 12, 6, 6)
+        p.drawEllipse(self.car_x - 3, y - self.car_h + 22, 6, 6)
+
+        # Ruedas mejoradas
+        self._draw_wheel(p, self.car_x + 20, y - 6)
+        self._draw_wheel(p, self.car_x + self.car_w - 20, y - 6)
+
+    def _draw_wheel(self, p: QPainter, cx: int, cy: int):
+        r = self.wheel_r
+        
+        # Sombra de la rueda
+        p.setBrush(QBrush(QColor(0, 0, 0, 100)))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawEllipse(cx - r + 2, cy - r + 2, 2*r, 2*r)
+        
+        # Llanta negra
+        p.setBrush(QBrush(QColor("#1C1C1C")))
+        p.setPen(QPen(QColor("black"), 2))
+        p.drawEllipse(cx - r, cy - r, 2*r, 2*r)
+        
+        # Rin plateado con gradiente
+        rim_r = int(r * 0.7)
+        rim_gradient = QLinearGradient(cx - rim_r, cy - rim_r, cx + rim_r, cy + rim_r)
+        rim_gradient.setColorAt(0, QColor("#C0C0C0"))
+        rim_gradient.setColorAt(0.5, QColor("#A0A0A0"))
+        rim_gradient.setColorAt(1, QColor("#808080"))
+        
+        p.setBrush(QBrush(rim_gradient))
+        p.setPen(QPen(QColor("#606060"), 1))
+        p.drawEllipse(cx - rim_r, cy - rim_r, 2*rim_r, 2*rim_r)
+
+        # Centro del rin
+        center_r = int(r * 0.3)
+        p.setBrush(QBrush(QColor("#404040")))
+        p.drawEllipse(cx - center_r, cy - center_r, 2*center_r, 2*center_r)
+
+        # Rayos giratorios
         p.save()
         p.translate(cx, cy)
-        p.rotate(angle_deg)
-        p.setPen(QPen(QColor("#424242"), 2))
+        p.rotate(self.wheel_angle)
+        p.setPen(QPen(QColor("#707070"), 2))
         for _ in range(4):
-            p.drawLine(0, 0, rim_r, 0)
+            p.drawLine(0, 0, rim_r - 3, 0)
             p.rotate(90)
         p.restore()
+
+    def _draw_obstacles(self, p: QPainter):
+        for ob in self.obstacles:
+            # Sombra del obstáculo
+            p.setBrush(QBrush(QColor(0, 0, 0, 120)))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(ob["x_world"] + 2, self.lane_y[ob["lane_idx"]] + 2, 
+                         ob["width"], ob["height"]//2)
+            
+            # Obstáculo con gradiente
+            obs_gradient = QLinearGradient(0, self.lane_y[ob["lane_idx"]] - ob["height"], 
+                                         0, self.lane_y[ob["lane_idx"]])
+            obs_gradient.setColorAt(0, QColor("#FF4444"))
+            obs_gradient.setColorAt(1, QColor("#CC0000"))
+            
+            p.setBrush(QBrush(obs_gradient))
+            p.setPen(QPen(QColor("#AA0000"), 2))
+            p.drawRoundedRect(ob["x_world"], self.lane_y[ob["lane_idx"]] - ob["height"],
+                             ob["width"], ob["height"], 4, 4)
+            
+            # Detalles del obstáculo
+            p.setPen(QPen(QColor("#FFFF00"), 2))
+            p.drawLine(ob["x_world"] + 3, self.lane_y[ob["lane_idx"]] - ob["height"]//2,
+                      ob["x_world"] + ob["width"] - 3, self.lane_y[ob["lane_idx"]] - ob["height"]//2)
