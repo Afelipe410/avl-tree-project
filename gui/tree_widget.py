@@ -67,24 +67,23 @@ class TreeWidget(QWidget):
 
     def _add_random_obstacle(self):
         import random
-        x_world = 150 + random.randint(0, 800)
-        lane = random.randint(0, 2)
-        
-        # Seleccionar tipo de obstáculo aleatorio
+        x_world = self.parent().game.world_offset + 300 + random.randint(0, 500)
+        lane = random.randint(0, 3)  # asegúrate de 4 carriles
+
         obstacle_type = random.choice(self.obstacle_types)
-        
         ob = {
-            "id": random.randint(1000, 9999),
-            "name": obstacle_type["name"],
-            "color": obstacle_type["color"],
-            "text_color": obstacle_type["text_color"],
-            "x_world": x_world,
-            "lane_idx": lane,
-            "width": 32,
-            "height": 32,
-        }
+        "id": random.randint(1000, 9999),
+        "name": obstacle_type["name"],
+        "color": obstacle_type["color"],
+        "text_color": obstacle_type["text_color"],
+        "x_world": x_world,
+        "lane_idx": lane,
+        "width": 32,
+        "height": 32,
+    }
         self.avl.insert(x_world, ob)
         self.update()
+
 
     def paintEvent(self, _event):
         p = QPainter(self)
