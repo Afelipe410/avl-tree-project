@@ -10,6 +10,7 @@ class GameWidget(QWidget):
         super().__init__()
         self.config = config or {}
         self.speed = self.config.get("game", {}).get("speed", 6)
+        self.world_offset = 0  # se usa para desplazamiento general del mundo
 
         # Carro
         self.car_x = 80
@@ -42,26 +43,24 @@ class GameWidget(QWidget):
         self.timer.start(30)
 
     def set_obstacles(self, obs: list):
-        """Recibe lista de obstáculos desde AVLTree"""
-        self.obstacles = [dict(o) for o in obs]
+        self.obstacles = [
+            {**o, "spawn_x": o.get("spawn_x", o.get("x_world", 0))}
+            for o in obs
+        ]
 
     def update_game(self):
-        # Animación de líneas de carretera
-        self.road_line_offset = (self.road_line_offset + self.speed) % 40
+        # Animación carretera
+        self.world_offset += self.speed
+        self.road_line_offset = self.world_offset % 40
 
-        # COMENTADO: Los obstáculos ahora se quedan quietos en sus posiciones
-        # Mover obstáculos hacia la izquierda
-        # for ob in self.obstacles:
-        #     ob["x_world"] -= self.speed
-
-        # Control del salto
+        # Salto
         if self.jumping:
             self.jump_progress += 1
             if self.jump_progress >= self.jump_max:
                 self.jumping = False
                 self.jump_progress = 0
 
-        # Rotación de las ruedas
+        # Rotación ruedas
         circ = 2 * math.pi * self.wheel_r
         if circ > 0:
             self.wheel_angle = (self.wheel_angle + (self.speed / circ) * 360) % 360
@@ -71,7 +70,8 @@ class GameWidget(QWidget):
             car_rect = (self.car_x, self.car_y() - self.car_h,
                         self.car_w, self.car_h)
             for ob in list(self.obstacles):
-                ob_rect = (ob["x_world"], self.lane_y[ob["lane_idx"]] - ob["height"],
+                ob_screen_x = ob["spawn_x"] - self.world_offset
+                ob_rect = (ob_screen_x, self.lane_y[ob["lane_idx"]] - ob["height"],
                            ob["width"], ob["height"])
                 if self.check_collision(car_rect, ob_rect):
                     self.lives -= 1
@@ -79,7 +79,14 @@ class GameWidget(QWidget):
                     self.obstacles.remove(ob)
                     break
 
+        # Eliminar obstáculos ya pasados
+        self.obstacles = [
+            ob for ob in self.obstacles
+            if ob["spawn_x"] - self.world_offset + ob["width"] > self.car_x
+        ]
+
         self.update()
+
 
     def car_y(self):
         """Posición Y del carro con offset de salto"""
@@ -136,13 +143,32 @@ class GameWidget(QWidget):
         # Obstáculos
         self._draw_obstacles(p)
 
+        
+        # --- Barra de vida visual ---
+        max_lives = 10
+        bar_width = 200
+        bar_height = 18
+        bar_x = (self.width() - bar_width) // 2
+        bar_y = 12
+
+        # Fondo de la barra
+        p.setBrush(QBrush(QColor("#444")))
+        p.setPen(QPen(QColor("#222"), 2))
+        p.drawRoundedRect(bar_x, bar_y, bar_width, bar_height, 8, 8)
+
+        # Barra de vida (verde a rojo)
+        lives_ratio = max(0, min(self.lives / max_lives, 1))
+        life_color = QColor.fromRgbF(1 - lives_ratio, lives_ratio, 0)  # rojo a verde
+        p.setBrush(QBrush(life_color))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawRoundedRect(bar_x + 2, bar_y + 2, int((bar_width - 4) * lives_ratio), bar_height - 4, 6, 6)
+
         # HUD
         p.setPen(QColor("white"))
         font = p.font()
         font.setBold(True)
         font.setPointSize(12)
         p.setFont(font)
-        p.drawText(10, 25, f"Vidas: {self.lives}")
 
     def _draw_road_lines(self, p: QPainter):
         """Dibuja líneas de carretera más realistas y animadas"""
@@ -275,10 +301,18 @@ class GameWidget(QWidget):
 
     def _draw_obstacles(self, p: QPainter):
         for ob in self.obstacles:
+            ob_screen_x = ob["spawn_x"] - self.world_offset
+            y = self.lane_y[ob["lane_idx"]] - ob["height"]
+            w = ob["width"]
+            h = ob["height"]
+            p.setBrush(QColor("#B91C1C"))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawRect(ob_screen_x, y, w, h)
+
             # Sombra del obstáculo
             p.setBrush(QBrush(QColor(0, 0, 0, 120)))
             p.setPen(Qt.PenStyle.NoPen)
-            p.drawEllipse(ob["x_world"] + 2, self.lane_y[ob["lane_idx"]] + 2, 
+            p.drawEllipse(ob_screen_x + 2, self.lane_y[ob["lane_idx"]] + 2, 
                          ob["width"], ob["height"]//2)
             
             # Obstáculo con gradiente
@@ -289,10 +323,10 @@ class GameWidget(QWidget):
             
             p.setBrush(QBrush(obs_gradient))
             p.setPen(QPen(QColor("#AA0000"), 2))
-            p.drawRoundedRect(ob["x_world"], self.lane_y[ob["lane_idx"]] - ob["height"],
+            p.drawRoundedRect(ob_screen_x, self.lane_y[ob["lane_idx"]] - ob["height"],
                              ob["width"], ob["height"], 4, 4)
             
             # Detalles del obstáculo
             p.setPen(QPen(QColor("#FFFF00"), 2))
-            p.drawLine(ob["x_world"] + 3, self.lane_y[ob["lane_idx"]] - ob["height"]//2,
-                      ob["x_world"] + ob["width"] - 3, self.lane_y[ob["lane_idx"]] - ob["height"]//2)
+            p.drawLine(ob_screen_x + 3, self.lane_y[ob["lane_idx"]] - ob["height"]//2,
+                      ob_screen_x + ob["width"] - 3, self.lane_y[ob["lane_idx"]] - ob["height"]//2)
