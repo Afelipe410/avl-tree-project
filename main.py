@@ -9,7 +9,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Proyecto AVL - Estructuras de Datos")
+        self.setWindowTitle("Proyecto AVL - Estructuras de Datos 2025 - II")
 
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
