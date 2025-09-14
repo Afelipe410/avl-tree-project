@@ -68,7 +68,7 @@ class TreeWidget(QWidget):
     def _add_random_obstacle(self):
         import random
         x_world = self.parent().game.world_offset + 300 + random.randint(0, 500)
-        lane = random.randint(0, 3)  # asegúrate de 4 carriles
+        lane = random.randint(0, 3)  #4 carriles
 
         obstacle_type = random.choice(self.obstacle_types)
         ob = {

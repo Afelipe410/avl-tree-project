@@ -5,7 +5,7 @@ import math
 
 class GameWidget(QWidget):
     hit_signal = pyqtSignal()
-    game_over_signal = pyqtSignal(str)  # Señal para fin de juego
+    game_over_signal = pyqtSignal(str)
 
     def __init__(self, config: dict):
         super().__init__()
@@ -27,9 +27,9 @@ class GameWidget(QWidget):
 
         # Salto
         self.jumping = False
-        self.jump_height = 60
+        self.jump_height = 70
         self.jump_progress = 0
-        self.jump_max = 24
+        self.jump_max = 35
 
         # Obstáculos
         self.obstacles = []
@@ -118,10 +118,10 @@ class GameWidget(QWidget):
         # Revisar fin de juego
         if self.lives <= 0:
             self.timer.stop()
-            self.game_over_signal.emit("💀 Juego terminado! No te quedan vidas.")
+            self.game_over_signal.emit("Que mal, perdiste! No te quedan vidas.")
         elif self.world_offset >= self.goal_x:
             self.timer.stop()
-            self.game_over_signal.emit("🎉 Felicidades! Llegaste a la meta.")
+            self.game_over_signal.emit("Felicidades, ganaste! Llegaste a la meta.")
 
         self.update()
 
@@ -168,15 +168,10 @@ class GameWidget(QWidget):
         road_gradient.setColorAt(1, QColor("#2A2A2A"))
         p.fillRect(0, 80, self.width(), 320, QBrush(road_gradient))
 
-        # Líneas de carretera
         self._draw_road_lines(p)
-        # Carro
         self._draw_car(p)
-        # Obstáculos
         self._draw_obstacles(p)
-        # Meta
         self._draw_goal(p)
-        # Barra de vida
         self._draw_life_bar(p)
 
     def _draw_road_lines(self, p: QPainter):

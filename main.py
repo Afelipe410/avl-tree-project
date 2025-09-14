@@ -17,9 +17,6 @@ class MainWindow(QMainWindow):
         self.menu = MenuWidget()
 
         self.avl = AVLTree()
-        self.avl.insert(1200, {'id': 1, 'x_world': 1200, 'lane_idx': 1, 'width': 32, 'height': 32})
-        self.avl.insert(1600, {'id': 2, 'x_world': 1600, 'lane_idx': 0, 'width': 32, 'height': 32})
-        self.avl.insert(2000, {'id': 3, 'x_world': 2000, 'lane_idx': 2, 'width': 32, 'height': 32})
 
         self.gameplay = GameplayWidget(self.avl)
 
