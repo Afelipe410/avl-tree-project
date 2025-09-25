@@ -110,12 +110,14 @@ class GameWidget(QWidget):
                 ob_rect = (ob_screen_x, self.lane_y[ob["lane_idx"]] - ob["height"],
                            ob["width"], ob["height"])
                 if self.check_collision(car_rect, ob_rect):
-                    self.lives -= 1
-                    self.hit_signal.emit()
-                    self.obstacles.remove(ob)
-                    if self.avl:
-                        self.avl.delete(ob["x_world"])
+                    if not ob.get("hit", False):   # 👈 solo resta vida si no estaba marcado
+                        self.lives -= 1
+                        self.hit_signal.emit()
+                        ob["hit"] = True           # marcar obstáculo como golpeado
+                        if self.avl:
+                            self.avl.delete(ob["x_world"])
                     break
+
 
         # Eliminar obstáculos ya pasados
         self.obstacles = [
