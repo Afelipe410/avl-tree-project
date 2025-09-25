@@ -299,10 +299,10 @@ class GameWidget(QWidget):
         if -50 < goal_screen_x < self.width():
             p.setBrush(QBrush(QColor("#FFD700")))
             p.setPen(QPen(QColor("#DAA520"), 2))
-            p.drawRect(goal_screen_x, 80, 10, 320)
-            p.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+            p.drawRect(goal_screen_x, 80, 20, 320)
+            p.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
             p.setPen(QColor("#FFD700"))
-            p.drawText(goal_screen_x - 20, 70, 50, 20, Qt.AlignmentFlag.AlignCenter, "META")
+            p.drawText(goal_screen_x - 20, 55, 60, 20, Qt.AlignmentFlag.AlignCenter, "META")
 
     def _draw_life_bar(self, p: QPainter):
         max_lives = 10
