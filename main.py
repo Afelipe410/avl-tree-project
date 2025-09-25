@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from PyQt6.QtCore import QTimer
-from gui.avl_tree import AVLTree
+from gui.json_loader import load_game_from_json
 from gui.gameplay_widget import GameplayWidget
 from gui.menu_widget import MenuWidget
 
@@ -16,9 +16,16 @@ class MainWindow(QMainWindow):
 
         self.menu = MenuWidget()
 
-        self.avl = AVLTree()
+        # cargar nivel desde JSON
+        config, avl = load_game_from_json("level1.json")
 
-        self.gameplay = GameplayWidget(self.avl)
+        self.gameplay = GameplayWidget(avl)
+
+        # pasar configuración al GameWidget
+        if self.gameplay.game:
+            self.gameplay.game.config = config
+            self.gameplay.game.speed = config.get("game", {}).get("speed", self.gameplay.game.speed)
+            self.gameplay.game.goal_x = config.get("game", {}).get("distance_total", self.gameplay.game.goal_x)
 
         self.stack.addWidget(self.menu)
         self.stack.addWidget(self.gameplay)

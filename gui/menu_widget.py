@@ -1,126 +1,51 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QSpacerItem, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel
 from PyQt6.QtCore import pyqtSignal, Qt
-from PyQt6.QtGui import QFont, QPalette
+from PyQt6.QtGui import QFont
 
 class MenuWidget(QWidget):
-    # Señales que MainWindow escucha
+    # Señales que MainWindow escuchará
     start_signal = pyqtSignal()
     exit_signal = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        
-        # Configurar el widget principal
-        self.setMinimumSize(400, 300)
-        self.setStyleSheet("""
-            QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #2c3e50, stop: 1 #34495e);
-            }
-        """)
+
+        # Configurar tamaño mínimo
+        self.setMinimumSize(300, 200)
 
         # Layout principal
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(30)
-        layout.setContentsMargins(50, 50, 50, 50)
+        layout.setSpacing(15)
 
-        # Spacer superior para centrar mejor el contenido
-        layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-        # Título del juego
-        title_label = QLabel("🎮 JUEGO 🎮")
-        title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ecf0f1;
-                background: transparent;
-                padding: 10px;
-                border-radius: 10px;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            }
-        """)
-        layout.addWidget(title_label)
+        # Título
+        title = QLabel("🎮 JUEGO 🎮")
+        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
 
         # Nombres de los autores
-        lbl = QLabel("Andrés Felipe Giraldo Rojas - Miguel Angel Cruz Betancourt")
-        lbl.setFont(QFont("Arial", 12, QFont.Weight.Normal))
-        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl.setWordWrap(True)
-        lbl.setStyleSheet("""
-            QLabel {
-                color: #bdc3c7;
-                background: transparent;
-                padding: 15px;
-                margin: 10px;
-            }
-        """)
-        layout.addWidget(lbl)
+        authors = QLabel("Presentado por:\nAndrés Felipe Giraldo Rojas \nMiguel Angel Cruz Betancourt")
+        authors.setFont(QFont("Arial", 11))
+        authors.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        authors.setWordWrap(True)
+        layout.addWidget(authors)
 
-        # Espaciador entre título y botones
-        layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+        # Profesor
+        teacher = QLabel("Presentado a:\nJeferson Arango Lopez")
+        teacher.setFont(QFont("Arial", 11))
+        teacher.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        teacher.setWordWrap(True)
+        layout.addWidget(teacher)
 
-        # Botón iniciar
-        btn_start = QPushButton("🚀 Jugar")
-        btn_start.setMinimumHeight(50)
-        btn_start.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        btn_start.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #27ae60, stop: 1 #2ecc71);
-                color: white;
-                border: none;
-                border-radius: 25px;
-                padding: 10px 20px;
-                font-weight: bold;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #2ecc71, stop: 1 #27ae60);
-                transform: translateY(-2px);
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #229954, stop: 1 #27ae60);
-                transform: translateY(1px);
-            }
-        """)
+        # Botón Jugar
+        btn_start = QPushButton("Jugar")
+        btn_start.setFont(QFont("Arial", 14))
         btn_start.clicked.connect(self.start_signal.emit)
         layout.addWidget(btn_start)
 
-        # Espaciador entre botones
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
-
-        # Botón salir
-        btn_exit = QPushButton("❌ Salir")
-        btn_exit.setMinimumHeight(50)
-        btn_exit.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        btn_exit.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #e74c3c, stop: 1 #c0392b);
-                color: white;
-                border: none;
-                border-radius: 25px;
-                padding: 10px 20px;
-                font-weight: bold;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #c0392b, stop: 1 #e74c3c);
-                transform: translateY(-2px);
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #a93226, stop: 1 #c0392b);
-                transform: translateY(1px);
-            }
-        """)
+        # Botón Salir
+        btn_exit = QPushButton("Salir")
+        btn_exit.setFont(QFont("Arial", 14))
         btn_exit.clicked.connect(self.exit_signal.emit)
         layout.addWidget(btn_exit)
-
-        # Spacer inferior para centrar mejor el contenido
-        layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))

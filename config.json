@@ -1,9 +1,0 @@
-{
-  "screen_width": 800,
-  "screen_height": 400,
-  "refresh_time": 200,
-  "car_speed": 5,
-  "jump_height": 80,
-  "car_color": "#3498db",
-  "jump_color": "#e74c3c"
-}

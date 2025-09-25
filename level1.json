@@ -1,0 +1,33 @@
+{
+  "config": {
+    "game": {
+      "distance_total": 10000,
+      "speed": 6,
+      "jump_height": 70,
+      "refresh_ms": 30,
+      "car_color": "#AAA0A0"
+    }
+  },
+  "obstacles": [
+    {
+      "id": 1,
+      "name": "Cono",
+      "color": "#E67E22",
+      "text_color": "#FFFFFF",
+      "x_world": 500,
+      "lane_idx": 1,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 2,
+      "name": "Piedra",
+      "color": "#95A5A6",
+      "text_color": "#2C3E50",
+      "x_world": 1200,
+      "lane_idx": 2,
+      "width": 32,
+      "height": 32
+    }
+  ]
+}

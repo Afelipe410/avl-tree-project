@@ -7,11 +7,13 @@ class GameWidget(QWidget):
     hit_signal = pyqtSignal()
     game_over_signal = pyqtSignal(str)
 
-    def __init__(self, config: dict):
-        super().__init__()
+    def __init__(self, avl_tree, config: dict, parent=None):
+        super().__init__(parent)
+        self.avl_tree = avl_tree          
         self.config = config or {}
         self.speed = self.config.get("game", {}).get("speed", 6)
         self.world_offset = 0
+        self.car_x = 0
 
         # Carro
         self.car_x = 80
@@ -59,7 +61,7 @@ class GameWidget(QWidget):
             return
 
         obstacles_for_game = []
-        nodes = avl.inorder()  # recorrido en orden ascendente por X
+        nodes = avl.inorder()  
         for node in nodes:
             x_world = node.key
             if x_world >= self.world_offset:
@@ -79,7 +81,13 @@ class GameWidget(QWidget):
     def update_game(self):
         # Animación carretera
         self.world_offset += self.speed
-        self.road_line_offset = self.world_offset % 40
+        self.road_line_offset = self.world_offset % 40    
+
+        # Eliminar obstáculos que ya pasaron
+        self.avl_tree.remove_passed_obstacles(self.car_x)
+
+        # Obtener lista actualizada de obstáculos
+        self.obstacles = self.avl_tree.to_obstacles()
 
         # Salto
         if self.jumping:
@@ -98,7 +106,7 @@ class GameWidget(QWidget):
             car_rect = (self.car_x, self.car_y() - self.car_h,
                         self.car_w, self.car_h)
             for ob in list(self.obstacles):
-                ob_screen_x = ob["spawn_x"] - self.world_offset
+                ob_screen_x = ob["x_world"] - self.world_offset
                 ob_rect = (ob_screen_x, self.lane_y[ob["lane_idx"]] - ob["height"],
                            ob["width"], ob["height"])
                 if self.check_collision(car_rect, ob_rect):
@@ -112,7 +120,7 @@ class GameWidget(QWidget):
         # Eliminar obstáculos ya pasados
         self.obstacles = [
             ob for ob in self.obstacles
-            if ob["spawn_x"] - self.world_offset + ob["width"] > self.car_x
+            if ob["x_world"] - self.world_offset + ob["width"] > self.car_x
         ]
 
         # Revisar fin de juego
@@ -273,7 +281,7 @@ class GameWidget(QWidget):
 
     def _draw_obstacles(self, p: QPainter):
         for ob in self.obstacles:
-            ob_screen_x = ob["spawn_x"] - self.world_offset
+            ob_screen_x = ob["x_world"] - self.world_offset
             y = self.lane_y[ob["lane_idx"]] - ob["height"]
             w = ob["width"]
             h = ob["height"]
@@ -306,7 +314,7 @@ class GameWidget(QWidget):
 
     def _draw_life_bar(self, p: QPainter):
         max_lives = 10
-        bar_width = 200
+        bar_width = 500
         bar_height = 18
         bar_x = (self.width() - bar_width) // 2
         bar_y = 12

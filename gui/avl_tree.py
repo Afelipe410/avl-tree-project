@@ -1,172 +1,142 @@
 class AVLNode:
-    def __init__(self, key, obstacle=None):
-        """
-        Inicializa un nodo del árbol AVL.
-
-        Args:
-            key: Clave para ordenar el nodo en el árbol.
-            obstacle: Objeto obstáculo asociado al nodo (opcional).
-        """
+    def __init__(self, key, obstacle):
         self.key = key
+        self.obstacle = obstacle
+        self.height = 1
         self.left = None
         self.right = None
-        self.height = 1
-        self.obstacle = obstacle
+
 
 class AVLTree:
     def __init__(self):
-        """
-        Inicializa un árbol AVL vacío.
-        """
         self.root = None
 
-    def height(self, node):
-        """
-        Devuelve la altura de un nodo.
-
-        Args:
-            node: Nodo del árbol.
-
-        Returns:
-            int: Altura del nodo, 0 si es None.
-        """
+    # ---------- utilidades ----------
+    def get_height(self, node):
         return node.height if node else 0
 
-    def balance_factor(self, node):
-        """
-        Calcula el factor de balance de un nodo.
+    def get_balance(self, node):
+        return self.get_height(node.left) - self.get_height(node.right) if node else 0
 
-        Args:
-            node: Nodo del árbol.
+    def update_height(self, node):
+        node.height = 1 + max(self.get_height(node.left), self.get_height(node.right))
 
-        Returns:
-            int: Diferencia de alturas entre los subárboles izquierdo y derecho.
-        """
-        return self.height(node.left) - self.height(node.right)
-
+    # ---------- rotaciones ----------
     def rotate_right(self, y):
-        """
-        Realiza una rotación simple a la derecha.
-
-        Args:
-            y: Nodo raíz del subárbol a rotar.
-
-        Returns:
-            AVLNode: Nueva raíz tras la rotación.
-        """
         x = y.left
         T2 = x.right
         x.right = y
         y.left = T2
-        y.height = 1 + max(self.height(y.left), self.height(y.right))
-        x.height = 1 + max(self.height(x.left), self.height(x.right))
+        self.update_height(y)
+        self.update_height(x)
         return x
 
     def rotate_left(self, x):
-        """
-        Realiza una rotación simple a la izquierda.
-
-        Args:
-            x: Nodo raíz del subárbol a rotar.
-
-        Returns:
-            AVLNode: Nueva raíz tras la rotación.
-        """
         y = x.right
         T2 = y.left
         y.left = x
         x.right = T2
-        x.height = 1 + max(self.height(x.left), self.height(x.right))
-        y.height = 1 + max(self.height(y.left), self.height(y.right))
+        self.update_height(x)
+        self.update_height(y)
         return y
 
-    def insert(self, key, obstacle=None):
-        """
-        Inserta un nuevo nodo en el árbol AVL.
-
-        Args:
-            key: Clave del nodo.
-            obstacle: Objeto obstáculo asociado (opcional).
-        """
+    # ---------- inserción ----------
+    def insert(self, key, obstacle):
         self.root = self._insert(self.root, key, obstacle)
 
     def _insert(self, node, key, obstacle):
-        """
-        Inserta recursivamente un nodo en el árbol AVL y realiza balanceo.
-
-        Args:
-            node: Nodo actual.
-            key: Clave del nuevo nodo.
-            obstacle: Objeto obstáculo asociado.
-
-        Returns:
-            AVLNode: Nodo actualizado tras la inserción y balanceo.
-        """
         if not node:
             return AVLNode(key, obstacle)
-        elif key < node.key:
+        if key < node.key:
             node.left = self._insert(node.left, key, obstacle)
-        else:
+        elif key > node.key:
             node.right = self._insert(node.right, key, obstacle)
-
-        node.height = 1 + max(self.height(node.left), self.height(node.right))
-        bf = self.balance_factor(node)
-
-        # Rotaciones para mantener el balance
-        if bf > 1 and key < node.left.key:
+        else:
+            node.obstacle = obstacle
+            return node
+        self.update_height(node)
+        balance = self.get_balance(node)
+        if balance > 1 and key < node.left.key:
             return self.rotate_right(node)
-        if bf < -1 and key > node.right.key:
+        if balance < -1 and key > node.right.key:
             return self.rotate_left(node)
-        if bf > 1 and key > node.left.key:
+        if balance > 1 and key > node.left.key:
             node.left = self.rotate_left(node.left)
             return self.rotate_right(node)
-        if bf < -1 and key < node.right.key:
+        if balance < -1 and key < node.right.key:
             node.right = self.rotate_right(node.right)
             return self.rotate_left(node)
-
         return node
 
-    def inorder(self):
-        """
-        Realiza un recorrido en orden del árbol.
+    # ---------- eliminación ----------
+    def delete(self, key):
+        self.root = self._delete(self.root, key)
 
-        Returns:
-            list: Lista de nodos en orden ascendente por clave.
-        """
-        res = []
-        def _in(n):
-            if not n: return
-            _in(n.left)
-            res.append(n)
-            _in(n.right)
-        _in(self.root)
-        return res
-
-    def to_obstacles(self):
-        """
-        Obtiene una lista de los obstáculos almacenados en el árbol.
-
-        Returns:
-            list: Lista de objetos obstáculo.
-        """
-        nodes = self.inorder()
-        return [n.obstacle for n in nodes if n.obstacle]
-    
-    def print_tree(self, node=None, level=0, prefix="Root: "):
-        """
-        Imprime el árbol en consola con formato jerárquico.
-
-        Args:
-            node: Nodo actual (por defecto la raíz).
-            level: Nivel de profundidad para la indentación.
-            prefix: Prefijo para mostrar la posición del nodo.
-        """
-        node = node or self.root
+    def _delete(self, node, key):
         if not node:
-            print("Árbol vacío")
+            return node
+        if key < node.key:
+            node.left = self._delete(node.left, key)
+        elif key > node.key:
+            node.right = self._delete(node.right, key)
+        else:
+            if not node.left:
+                return node.right
+            elif not node.right:
+                return node.left
+            temp = self.get_min(node.right)
+            node.key = temp.key
+            node.obstacle = temp.obstacle
+            node.right = self._delete(node.right, temp.key)
+        if not node:
+            return node
+        self.update_height(node)
+        balance = self.get_balance(node)
+        if balance > 1 and self.get_balance(node.left) >= 0:
+            return self.rotate_right(node)
+        if balance > 1 and self.get_balance(node.left) < 0:
+            node.left = self.rotate_left(node.left)
+            return self.rotate_right(node)
+        if balance < -1 and self.get_balance(node.right) <= 0:
+            return self.rotate_left(node)
+        if balance < -1 and self.get_balance(node.right) > 0:
+            node.right = self.rotate_right(node.right)
+            return self.rotate_left(node)
+        return node
+
+    def get_min(self, node):
+        while node.left:
+            node = node.left
+        return node
+
+    # ---------- limpieza de pasados ----------
+    def remove_passed_obstacles(self, world_offset, margin=100):
+        """
+        Elimina del árbol todos los obstáculos cuya x_world esté suficientemente
+        por detrás de world_offset (ya los pasamos).
+        world_offset: cuánto ha avanzado el mundo (lo mismo que en GameWidget).
+        """
+        # recopilamos x_world para no modificar el árbol mientras lo recorremos
+        xs = [n.key for n in self.inorder()]
+        threshold = world_offset - margin
+        for x in xs:
+            if x < threshold:
+                self.delete(x)
+
+    # ---------- recorridos ----------
+    def inorder(self):
+        result = []
+        self._inorder(self.root, result)
+        return result
+
+    def _inorder(self, node, result):
+        if not node:
             return
-        print(" " * (level * 4) + prefix + f"({node.key})")
-        if node.left:
-            self.print_tree(node.left, level + 1, "L--- ")
-        if node.right:
-            self.print_tree(node.right, level + 1, "R--- ")
+        self._inorder(node.left, result)
+        result.append(node)
+        self._inorder(node.right, result)
+
+    # ---------- conversión ----------
+    def to_obstacles(self):
+        """Devuelve lista de dicts con obstáculos en orden por x_world."""
+        return [n.obstacle for n in self.inorder()]
