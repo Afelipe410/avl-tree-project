@@ -10,6 +10,8 @@ class GameplayWidget(QWidget):
         self.avl = avl
         self.game = GameWidget(self.avl, {"game": {"speed": 6}})
         self.tree_w = TreeWidget(self.avl)
+        self.game = GameWidget(self.avl, {"game": {"speed": 6}}, parent=self)
+        self.tree_w = TreeWidget(self.avl, parent=self)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

@@ -28,6 +28,186 @@
       "lane_idx": 2,
       "width": 32,
       "height": 32
+    },
+    {
+      "id": 3,
+      "name": "Hueco",
+      "color": "#8B4513",
+      "text_color": "#FFFFFF",
+      "x_world": 800,
+      "lane_idx": 0,
+      "width": 40,
+      "height": 20
+    },
+    {
+      "id": 4,
+      "name": "Charco",
+      "color": "#3498DB",
+      "text_color": "#FFFFFF",
+      "x_world": 1500,
+      "lane_idx": 3,
+      "width": 50,
+      "height": 25
+    },
+    {
+      "id": 5,
+      "name": "Rama",
+      "color": "#27AE60",
+      "text_color": "#FFFFFF",
+      "x_world": 1800,
+      "lane_idx": 1,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 6,
+      "name": "Vidrio",
+      "color": "#E8F8F5",
+      "text_color": "#2C3E50",
+      "x_world": 2200,
+      "lane_idx": 2,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 7,
+      "name": "Metal",
+      "color": "#566573",
+      "text_color": "#FFFFFF",
+      "x_world": 2500,
+      "lane_idx": 0,
+      "width": 35,
+      "height": 35
+    },
+    {
+      "id": 8,
+      "name": "Aceite",
+      "color": "#2C3E50",
+      "text_color": "#ECF0F1",
+      "x_world": 2900,
+      "lane_idx": 3,
+      "width": 45,
+      "height": 20
+    },
+    {
+      "id": 9,
+      "name": "Cono",
+      "color": "#E67E22",
+      "text_color": "#FFFFFF",
+      "x_world": 3200,
+      "lane_idx": 1,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 10,
+      "name": "Piedra",
+      "color": "#95A5A6",
+      "text_color": "#2C3E50",
+      "x_world": 3600,
+      "lane_idx": 2,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 11,
+      "name": "Hueco",
+      "color": "#8B4513",
+      "text_color": "#FFFFFF",
+      "x_world": 4100,
+      "lane_idx": 0,
+      "width": 40,
+      "height": 20
+    },
+    {
+      "id": 12,
+      "name": "Piedra",
+      "color": "#95A5A6",
+      "text_color": "#2C3E50",
+      "x_world": 4150,
+      "lane_idx": 1,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 13,
+      "name": "Charco",
+      "color": "#3498DB",
+      "text_color": "#FFFFFF",
+      "x_world": 4800,
+      "lane_idx": 3,
+      "width": 50,
+      "height": 25
+    },
+    {
+      "id": 14,
+      "name": "Rama",
+      "color": "#27AE60",
+      "text_color": "#FFFFFF",
+      "x_world": 5500,
+      "lane_idx": 2,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 15,
+      "name": "Cono",
+      "color": "#E67E22",
+      "text_color": "#FFFFFF",
+      "x_world": 6200,
+      "lane_idx": 1,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 16,
+      "name": "Cono",
+      "color": "#E67E22",
+      "text_color": "#FFFFFF",
+      "x_world": 6250,
+      "lane_idx": 2,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 17,
+      "name": "Metal",
+      "color": "#566573",
+      "text_color": "#FFFFFF",
+      "x_world": 7000,
+      "lane_idx": 0,
+      "width": 35,
+      "height": 35
+    },
+    {
+      "id": 18,
+      "name": "Vidrio",
+      "color": "#E8F8F5",
+      "text_color": "#2C3E50",
+      "x_world": 7800,
+      "lane_idx": 3,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 19,
+      "name": "Piedra",
+      "color": "#95A5A6",
+      "text_color": "#2C3E50",
+      "x_world": 8500,
+      "lane_idx": 1,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "id": 20,
+      "name": "Aceite",
+      "color": "#2C3E50",
+      "text_color": "#ECF0F1",
+      "x_world": 9200,
+      "lane_idx": 2,
+      "width": 45,
+      "height": 20
     }
   ]
 }
