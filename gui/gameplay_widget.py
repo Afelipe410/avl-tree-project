@@ -5,8 +5,8 @@ from gui.game_widget import GameWidget
 from gui.tree_widget import TreeWidget
 
 class GameplayWidget(QWidget):
-    def __init__(self, avl: AVLTree, menu_parent=None):
-        super().__init__(menu_parent)
+    def __init__(self, avl: AVLTree, parent=None):
+        super().__init__(parent)
         self.avl = avl
         self.game = GameWidget(self.avl, {"game": {"speed": 6}})
         self.tree_w = TreeWidget(self.avl)

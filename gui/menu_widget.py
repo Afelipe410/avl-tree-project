@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QFont, QColor, QPalette
 
@@ -6,6 +6,7 @@ class MenuWidget(QWidget):
     # Señales que MainWindow escuchará
     start_signal = pyqtSignal()
     exit_signal = pyqtSignal()
+    load_level_signal = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -51,7 +52,22 @@ class MenuWidget(QWidget):
         layout.addWidget(btn_start)
         btn_start.clicked.connect(self.start_signal.emit)
 
+        btn_load = QPushButton("Cargar árbol de obstaculos (JSON)")
+        btn_load.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        layout.addWidget(btn_load)
+        btn_load.clicked.connect(self.open_file_dialog)
+
         btn_exit = QPushButton("✖ Salir")
         btn_exit.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         layout.addWidget(btn_exit)
         btn_exit.clicked.connect(self.exit_signal.emit)
+
+    def open_file_dialog(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Seleccionar Nivel JSON",
+            "",
+            "JSON Files (*.json);;All Files (*)"
+        )
+        if file_path:
+            self.load_level_signal.emit(file_path)

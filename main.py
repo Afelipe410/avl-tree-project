@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QMessageBox
 from PyQt6.QtCore import QTimer
 from gui.json_loader import load_game_from_json
 from gui.gameplay_widget import GameplayWidget
@@ -16,21 +16,12 @@ class MainWindow(QMainWindow):
 
         self.menu = MenuWidget()
 
-        # cargar nivel desde JSON
-        config, avl = load_game_from_json("level1.json")
-
-        self.gameplay = GameplayWidget(avl)
-
-        # pasar configuración al GameWidget
-        if self.gameplay.game:
-            self.gameplay.game.config = config
-            self.gameplay.game.speed = config.get("game", {}).get("speed", self.gameplay.game.speed)
-            self.gameplay.game.goal_x = config.get("game", {}).get("distance_total", self.gameplay.game.goal_x)
+        self.gameplay = None 
+        self.load_level("level1.json")
 
         self.stack.addWidget(self.menu)
-        self.stack.addWidget(self.gameplay)
-
         self.menu.start_signal.connect(self.start_game)
+        self.menu.load_level_signal.connect(self.on_load_level_request)
         self.menu.exit_signal.connect(self.exit_game)
 
         self.stack.setCurrentWidget(self.menu)
@@ -42,6 +33,27 @@ class MainWindow(QMainWindow):
 
     def exit_game(self):
         QApplication.quit()
+
+    def on_load_level_request(self, file_path):
+        try:
+            self.load_level(file_path)
+            QMessageBox.information(self, "Nivel Cargado", f"Se ha cargado el nivel desde:\n{file_path}")
+            self.stack.setCurrentWidget(self.menu)
+        except Exception as e:
+            QMessageBox.critical(self, "Error de Carga", f"No se pudo cargar el archivo de nivel.\nError: {e}")
+
+    def load_level(self, file_path):
+        if self.gameplay:
+            self.stack.removeWidget(self.gameplay)
+            self.gameplay.deleteLater()
+
+        config, avl = load_game_from_json(file_path)
+        self.gameplay = GameplayWidget(avl, parent=self.stack)
+
+        self.gameplay.game.config = config
+        self.gameplay.game.speed = config.get("game", {}).get("speed", self.gameplay.game.speed)
+        self.gameplay.game.goal_x = config.get("game", {}).get("distance_total", self.gameplay.game.goal_x)
+        self.stack.addWidget(self.gameplay)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
