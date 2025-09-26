@@ -41,7 +41,7 @@ class GameWidget(QWidget):
         self.road_line_offset = 0
 
         # Meta
-        self.goal_x = 10000  # distancia hasta la meta
+        self.goal_x = 10000 
 
         # AVL
         self.avl = None
@@ -111,12 +111,13 @@ class GameWidget(QWidget):
                 ob_rect = (ob_screen_x, self.lane_y[ob["lane_idx"]] - ob["height"],
                            ob["width"], ob["height"])
                 if self.check_collision(car_rect, ob_rect):
-                    if not ob.get("hit", False):   # 👈 solo resta vida si no estaba marcado
+                    if not ob.get("hit", False): 
                         self.lives -= 1
                         self.hit_signal.emit()
                         ob["hit"] = True           # marcar obstáculo como golpeado
                         if self.avl:
-                            self.avl.delete(ob["x_world"])
+                            # La clave para eliminar es una tupla (x, y)
+                            self.avl.delete((ob["x_world"], ob["lane_idx"]))
                     break
 
 

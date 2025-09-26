@@ -1,5 +1,6 @@
 class AVLNode:
     def __init__(self, key, obstacle):
+        # La clave ahora es una tupla (x, y)
         self.key = key
         self.obstacle = obstacle
         self.height = 1
@@ -52,7 +53,7 @@ class AVLTree:
         elif key > node.key:
             node.right = self._insert(node.right, key, obstacle)
         else:
-            node.obstacle = obstacle
+            # No se permiten claves duplicadas (misma coordenada x, y)
             return node
         self.update_height(node)
         balance = self.get_balance(node)
@@ -122,7 +123,8 @@ class AVLTree:
 
         node.right = self._remove_passed_recursive(node.right, threshold)
 
-        if node.key < threshold:
+        # Comparamos solo con la coordenada X de la clave
+        if node.key[0] < threshold:
             return node.right
         else:
             node.left = self._remove_passed_recursive(node.left, threshold)
@@ -162,12 +164,47 @@ class AVLTree:
         self._inorder(self.root, result)
         return result
 
+    def preorder(self):
+        result = []
+        self._preorder(self.root, result)
+        return result
+
+    def postorder(self):
+        result = []
+        self._postorder(self.root, result)
+        return result
+
+    def bfs(self):
+        if not self.root:
+            return []
+        result, queue = [], [self.root]
+        while queue:
+            node = queue.pop(0)
+            result.append(node)
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        return result
+
     def _inorder(self, node, result):
         if not node:
             return
         self._inorder(node.left, result)
         result.append(node)
         self._inorder(node.right, result)
+
+    def _preorder(self, node, result):
+        if node:
+            result.append(node)
+            self._preorder(node.left, result)
+            self._preorder(node.right, result)
+
+    def _postorder(self, node, result):
+        if node:
+            self._postorder(node.left, result)
+            self._postorder(node.right, result)
+            result.append(node)
 
     # ---------- conversión ----------
     def to_obstacles(self):

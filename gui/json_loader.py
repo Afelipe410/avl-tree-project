@@ -10,6 +10,8 @@ def load_game_from_json(path: str):
 
     avl = AVLTree()
     for obs in obstacles:
-        avl.insert(obs["x_world"], obs)
+        # La clave es una tupla (x_world, lane_idx)
+        key = (obs["x_world"], obs["lane_idx"])
+        avl.insert(key, obs)
 
     return config, avl
