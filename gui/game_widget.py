@@ -84,7 +84,8 @@ class GameWidget(QWidget):
         self.road_line_offset = self.world_offset % 40    
 
         # Eliminar obstáculos que ya pasaron
-        self.avl_tree.remove_passed_obstacles(self.car_x)
+        car_world_x = self.world_offset + self.car_x
+        self.avl_tree.remove_passed_obstacles(car_world_x)
 
         # Obtener lista actualizada de obstáculos
         self.obstacles = self.avl_tree.to_obstacles()

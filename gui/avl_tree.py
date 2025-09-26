@@ -111,17 +111,50 @@ class AVLTree:
 
     # ---------- limpieza de pasados ----------
     def remove_passed_obstacles(self, world_offset, margin=100):
-        """
-        Elimina del árbol todos los obstáculos cuya x_world esté suficientemente
-        por detrás de world_offset (ya los pasamos).
-        world_offset: cuánto ha avanzado el mundo (lo mismo que en GameWidget).
-        """
-        # recopilamos x_world para no modificar el árbol mientras lo recorremos
-        xs = [n.key for n in self.inorder()]
+        """Elimina del árbol los obstáculos que ya han sido superados por el jugador."""
         threshold = world_offset - margin
-        for x in xs:
-            if x < threshold:
-                self.delete(x)
+        self.root = self._remove_passed_recursive(self.root, threshold)
+
+    def _remove_passed_recursive(self, node, threshold):
+        """Recorre y elimina nodos recursivamente si su clave es menor que el umbral."""
+        if not node:
+            return None
+
+        node.right = self._remove_passed_recursive(node.right, threshold)
+
+        if node.key < threshold:
+            return node.right
+        else:
+            node.left = self._remove_passed_recursive(node.left, threshold)
+            return self._delete_balance(node)
+
+    def _delete_balance(self, node):
+        """Función auxiliar para rebalancear un nodo después de una eliminación."""
+        if not node:
+            return node
+
+        self.update_height(node)
+        balance = self.get_balance(node)
+
+        # Caso Izquierda-Izquierda
+        if balance > 1 and self.get_balance(node.left) >= 0:
+            return self.rotate_right(node)
+
+        # Caso Izquierda-Derecha
+        if balance > 1 and self.get_balance(node.left) < 0:
+            node.left = self.rotate_left(node.left)
+            return self.rotate_right(node)
+
+        # Caso Derecha-Derecha
+        if balance < -1 and self.get_balance(node.right) <= 0:
+            return self.rotate_left(node)
+
+        # Caso Derecha-Izquierda
+        if balance < -1 and self.get_balance(node.right) > 0:
+            node.right = self.rotate_right(node.right)
+            return self.rotate_left(node)
+
+        return node
 
     # ---------- recorridos ----------
     def inorder(self):
