@@ -96,7 +96,6 @@ class TreeWidget(QWidget):
     def _add_random_obstacle(self):
         import random
         x_world = self.parent().game.world_offset + 300 + random.randint(0, 500)
-        # Ajustado para usar lane_idx como 'y' en la clave
         lane = random.randint(0, 3)  #4 carriles
 
         obstacle_type = random.choice(self.obstacle_types)
@@ -110,7 +109,7 @@ class TreeWidget(QWidget):
         "width": 32,
         "height": 32,
     }
-        # La clave ahora es una tupla (x, y)
+        # La clave tupla (x, y)
         key = (x_world, lane)
         self.avl.insert(key, ob)
         self.update()
@@ -123,15 +122,13 @@ class TreeWidget(QWidget):
             'postorder': self.avl.postorder,
         }
         nodes = traversal_map.get(traversal_type, self.avl.inorder)()
-        self.highlighted_nodes = list(nodes) # Copia de la lista
+        self.highlighted_nodes = list(nodes) 
         
-        # Muestra el texto del recorrido
         path_text = " -> ".join([f"#{node.obstacle['id']}" for node in nodes])
         self.traversal_label.setText(f"Recorrido {traversal_type.upper()}: {path_text}")
         
-        # Inicia la animación de resaltado
         if self.highlighted_nodes:
-            self.highlight_timer.start(300) # ms entre cada nodo
+            self.highlight_timer.start(300)
 
     def paintEvent(self, _event):
         p = QPainter(self)
@@ -144,20 +141,18 @@ class TreeWidget(QWidget):
         p.fillRect(self.rect(), QBrush(gradient))
 
         if not self.avl.root:
-            # Mensaje cuando no hay obstáculos
             p.setPen(QPen(QColor("#7F8C8D"), 2))
             p.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
             p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, 
                       "🚫 No hay obstáculos en el árbol\n\nHaz clic en 'Agregar Obstáculo' para comenzar")
             return
         
-        # Ajustamos la altura inicial para dejar espacio a los widgets superiores
         self._draw_node(p, self.avl.root, self.width() // 2, 120, self.width() // 4)
 
     def _update_highlight(self):
         if not self.highlighted_nodes:
             self.highlight_timer.stop()
-            self.update() # Limpia el último resaltado
+            self.update() 
             return
         self.highlighted_nodes.pop(0)
         self.update()
@@ -166,18 +161,15 @@ class TreeWidget(QWidget):
         if not node:
             return
 
-        # Dibujar líneas a los hijos primero (para que queden detrás)
         line_pen = QPen(QColor("#34495E"), 3, Qt.PenStyle.SolidLine)
         line_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         p.setPen(line_pen)
         
         if node.left:
-            # Línea curva hacia la izquierda
             p.drawLine(x - 5, y + 25, x - dx + 5, y + 75)
             self._draw_node(p, node.left, x - dx, y + 80, dx // 2)
             
         if node.right:
-            # Línea curva hacia la derecha
             p.drawLine(x + 5, y + 25, x + dx - 5, y + 75)
             self._draw_node(p, node.right, x + dx, y + 80, dx // 2)
 
@@ -185,7 +177,7 @@ class TreeWidget(QWidget):
         node_size = 50
         obstacle = node.obstacle
         
-        # Validación adicional del obstáculo
+        # Validación del obstáculo
         if not obstacle or not isinstance(obstacle, dict):
             return
             
@@ -204,7 +196,6 @@ class TreeWidget(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.drawEllipse(x - node_size//2 + 3, y - node_size//2 + 3, node_size, node_size)
 
-        # Nodo principal con gradiente
         gradient = QLinearGradient(x - node_size//2, y - node_size//2, 
                                  x + node_size//2, y + node_size//2)
         gradient.setColorAt(0, node_color.lighter(120))
@@ -221,7 +212,6 @@ class TreeWidget(QWidget):
         p.setPen(border_pen)
         p.drawEllipse(x - node_size//2, y - node_size//2, node_size, node_size)
 
-        # Texto del nodo - SOLUCIONADO: solo una vez, sin duplicados
         p.setPen(QPen(text_color, 1))
         
         key_x, key_y = node.key

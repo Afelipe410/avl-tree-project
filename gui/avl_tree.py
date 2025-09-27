@@ -7,12 +7,10 @@ class AVLNode:
         self.left = None
         self.right = None
 
-
 class AVLTree:
     def __init__(self):
         self.root = None
 
-    # ---------- utilidades ----------
     def get_height(self, node):
         return node.height if node else 0
 
@@ -53,7 +51,6 @@ class AVLTree:
         elif key > node.key:
             node.right = self._insert(node.right, key, obstacle)
         else:
-            # No se permiten claves duplicadas (misma coordenada x, y)
             return node
         self.update_height(node)
         balance = self.get_balance(node)

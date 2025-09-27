@@ -14,7 +14,7 @@ class MenuWidget(QWidget):
         # Configurar tamaño mínimo
         self.setMinimumSize(400, 300)
 
-        # Fondo con paleta (oscuro)
+        # Fondo con oscuro
         palette = self.palette()
         palette.setColor(QPalette.ColorRole.Window, QColor(40, 40, 40))
         self.setPalette(palette)
