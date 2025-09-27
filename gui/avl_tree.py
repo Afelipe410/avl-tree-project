@@ -1,6 +1,5 @@
 class AVLNode:
     def __init__(self, key, obstacle):
-        # La clave ahora es una tupla (x, y)
         self.key = key
         self.obstacle = obstacle
         self.height = 1
