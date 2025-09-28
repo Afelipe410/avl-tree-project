@@ -14,7 +14,7 @@ It is a 2D game where you drive a car that automatically moves forward on a road
 - Python version 3.8 or newer
 
 ### Python required. Libraries
-- `tkinter` (graphical user interface components)
+- `PyQt6` (graphical user interface components)
 - `json` (configuration management)
 
 ## Installation and configuration
