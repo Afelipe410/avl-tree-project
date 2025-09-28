@@ -68,8 +68,6 @@ class GameWidget(QWidget):
         # Mantener referencia al árbol; forzar regeneración de spawns cuando el árbol cambie
         self.avl_tree = avl
         self._prepared_spawns = False
-        # NO sobrescribimos self.obstacles aquí; las plantillas del árbol serán convertidas por _prepare_spawns
-        # cuando corresponda (y GameWidget decidirá la posición x_world)
 
     def set_obstacles(self, obs: list):
         """Establece la lista de obstáculos visibles en el juego"""

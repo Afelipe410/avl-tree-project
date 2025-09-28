@@ -97,7 +97,6 @@ class TreeWidget(QWidget):
         import random
         lane = random.randint(0, len(self.parent().game.lane_y)-1)
         obstacle_type = random.choice(self.obstacle_types)
-        # Crear plantilla SIN x_world: GameWidget asignará la x_world para que aparezca desde la derecha
         ob = {
             "id": random.randint(1000, 9999),
             "name": obstacle_type["name"],
