@@ -44,7 +44,7 @@ class GameWidget(QWidget):
 
         # Obstáculos
         self.obstacles = []
-        self.lives = 10
+        self.lives = 1.0
 
         # Animación de líneas de carretera
         self.road_line_offset = 0
@@ -137,7 +137,11 @@ class GameWidget(QWidget):
                 )
                 if self.check_collision(car_rect, ob_rect):
                     self.hit_signal.emit()
-                    self.lives -= 1
+
+                    if not ob.get("hit", False):
+                        self.lives -= 0.15
+                        self.lives = max(0.0, self.lives)
+                        ob["hit"] = True # marcar como golpeado para no descontar más vidas
                     try:
                         # eliminar obstáculo golpeado
                         self.obstacles.remove(ob)
@@ -340,7 +344,6 @@ class GameWidget(QWidget):
             p.drawText(goal_screen_x - 20, 55, 60, 20, Qt.AlignmentFlag.AlignCenter, "META")
 
     def _draw_life_bar(self, p: QPainter):
-        max_lives = 10
         bar_width = 500
         bar_height = 18
         bar_x = (self.width() - bar_width) // 2
@@ -348,7 +351,7 @@ class GameWidget(QWidget):
         p.setBrush(QBrush(QColor("#444")))
         p.setPen(QPen(QColor("#222"), 2))
         p.drawRoundedRect(bar_x, bar_y, bar_width, bar_height, 8, 8)
-        lives_ratio = max(0, min(self.lives / max_lives, 1))
+        lives_ratio = max(0.0, min(self.lives,1.0))
         life_color = QColor.fromRgbF(1 - lives_ratio, lives_ratio, 0)
         p.setBrush(QBrush(life_color))
         p.setPen(Qt.PenStyle.NoPen)
