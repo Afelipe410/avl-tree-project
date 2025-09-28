@@ -95,25 +95,28 @@ class TreeWidget(QWidget):
 
     def _add_random_obstacle(self):
         import random
-        x_world = self.parent().game.world_offset + 300 + random.randint(0, 500)
-        lane = random.randint(0, 3)  #4 carriles
-
+        lane = random.randint(0, len(self.parent().game.lane_y)-1)
         obstacle_type = random.choice(self.obstacle_types)
+        # Crear plantilla SIN x_world: GameWidget asignará la x_world para que aparezca desde la derecha
         ob = {
-        "id": random.randint(1000, 9999),
-        "name": obstacle_type["name"],
-        "color": obstacle_type["color"],
-        "text_color": obstacle_type["text_color"],
-        "x_world": x_world,
-        "lane_idx": lane,
-        "width": 32,
-        "height": 32,
-    }
-        # La clave tupla (x, y)
-        key = (x_world, lane)
+            "id": random.randint(1000, 9999),
+            "name": obstacle_type["name"],
+            "color": obstacle_type["color"],
+            "text_color": obstacle_type["text_color"],
+            "lane_idx": lane,
+            "width": 32,
+            "height": 32,
+        }
+        # La clave en el árbol usa una X temporal (no se usa para dibujo directo)
+        key = (self.parent().game.world_offset + 1000 + random.randint(0, 1000), ob["lane_idx"])
         self.avl.insert(key, ob)
+        # Notificar al GameWidget para que se cree el spawn desde la derecha
+        try: 
+            self.parent().game.register_new_obstacle(ob)
+        except Exception:
+            pass
         self.update()
-
+    
     def show_traversal(self, traversal_type):
         traversal_map = {
             'bfs': self.avl.bfs,

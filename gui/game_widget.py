@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QLinearGradient, QFont
 import math
+import random
 
 class GameWidget(QWidget):
     hit_signal = pyqtSignal()
@@ -14,6 +15,14 @@ class GameWidget(QWidget):
         self.speed = self.config.get("game", {}).get("speed", 6)
         self.world_offset = 0
         self.car_x = 0
+        # Control de ejecucion: hasta que no se "start()" el juego no avanza
+        self.running = False
+        # Cola de spawns. Se genera a partir del árbol y cada obstáculo tendrá x_world > world_offset
+        self._spawn_queue = []
+        self._prepared_spawns = False
+        # Timer de juego (no arrancar hasta que se pulse "Jugar")
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_game)
 
         # Carro
         self.car_x = 80
@@ -46,7 +55,7 @@ class GameWidget(QWidget):
         # AVL
         self.avl = None
 
-        # Timer de juego
+        # Timer de juego (no arrancar hasta que se pulse "Jugar")
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
         self.timer.start(30)
@@ -56,20 +65,11 @@ class GameWidget(QWidget):
         Sincroniza obstáculos visibles con el árbol AVL.
         Solo se muestran los que estén adelante del carro.
         """
-        self.avl = avl
-        if not avl or not avl.root:
-            return
-
-        obstacles_for_game = []
-        nodes = avl.inorder()  
-        for node in nodes:
-            x_world = node.key
-            if x_world >= self.world_offset:
-                ob = node.obstacle.copy()
-                ob["spawn_x"] = x_world
-                obstacles_for_game.append(ob)
-
-        self.set_obstacles(obstacles_for_game)
+        # Mantener referencia al árbol; forzar regeneración de spawns cuando el árbol cambie
+        self.avl_tree = avl
+        self._prepared_spawns = False
+        # NO sobrescribimos self.obstacles aquí; las plantillas del árbol serán convertidas por _prepare_spawns
+        # cuando corresponda (y GameWidget decidirá la posición x_world)
 
     def set_obstacles(self, obs: list):
         """Establece la lista de obstáculos visibles en el juego"""
@@ -79,54 +79,77 @@ class GameWidget(QWidget):
         ]
 
     def update_game(self):
-        # Animación carretera
-        self.world_offset += self.speed
-        self.road_line_offset = self.world_offset % 40    
+        # Avanzar sólo si el juego está en ejecución (presionaron "Jugar")
+        if self.running:
+            self.world_offset += self.speed
+        self.road_line_offset = self.world_offset % 40
+
+        # Preparar spawns desde el AVL si no se hizo todavía
+        if not self._prepared_spawns and self.avl_tree and self.avl_tree.root:
+            self._prepare_spawns_from_avl()
+            self._prepared_spawns = True
+
+        # Asegurar que los spawns (aunque estén fuera de pantalla) estén en self.obstacles
+        if self._spawn_queue:
+            existing_ids = {o.get("id") for o in self.obstacles}
+            for ob in list(self._spawn_queue):
+                if ob.get("id") not in existing_ids:
+                    self.obstacles.append(ob)
+                    existing_ids.add(ob.get("id"))
 
         # Eliminar obstáculos que ya pasaron
         car_world_x = self.world_offset + self.car_x
-        self.avl_tree.remove_passed_obstacles(car_world_x)
+        if self.avl_tree:
+            self.avl_tree.remove_passed_obstacles(car_world_x)
 
-        # Obtener lista actualizada de obstáculos
-        self.obstacles = self.avl_tree.to_obstacles()
+        # Sólo tomar obstáculos directamente desde el AVL si NO estamos usando la cola de spawns.
+        if not self._spawn_queue and self.avl_tree:
+            # to_obstacles() debe devolver plantillas sin x_world (el juego las posicionará)
+            self.obstacles = self.avl_tree.to_obstacles()
 
+        
         # Salto
         if self.jumping:
             self.jump_progress += 1
             if self.jump_progress >= self.jump_max:
+                
                 self.jumping = False
                 self.jump_progress = 0
-
+ 
         # Rotación ruedas
         circ = 2 * math.pi * self.wheel_r
         if circ > 0:
             self.wheel_angle = (self.wheel_angle + (self.speed / circ) * 360) % 360
-
+ 
         # Colisiones
         if not self.jumping:
             car_rect = (self.car_x, self.car_y() - self.car_h,
                         self.car_w, self.car_h)
             for ob in list(self.obstacles):
+                
+                # calcular rect para obstáculo en pantalla (con x_world moviéndose por world_offset)
                 ob_screen_x = ob["x_world"] - self.world_offset
-                ob_rect = (ob_screen_x, self.lane_y[ob["lane_idx"]] - ob["height"],
-                           ob["width"], ob["height"])
+                ob_rect = (
+                    ob_screen_x,
+                    self.lane_y[ob.get("lane_idx", 1)] - ob.get("height", 32),
+                    ob.get("width", 32),
+                    ob.get("height", 32),
+                )
                 if self.check_collision(car_rect, ob_rect):
-                    if not ob.get("hit", False): 
-                        self.lives -= 1
-                        self.hit_signal.emit()
-                        ob["hit"] = True           # marcar obstáculo como golpeado
-                        if self.avl:
-                            # La clave para eliminar es una tupla (x, y)
-                            self.avl.delete((ob["x_world"], ob["lane_idx"]))
-                    break
-
-
+                    self.hit_signal.emit()
+                    self.lives -= 1
+                    try:
+                        # eliminar obstáculo golpeado
+                        self.obstacles.remove(ob)
+                    except ValueError:
+                        pass
+ 
         # Eliminar obstáculos ya pasados
         self.obstacles = [
             ob for ob in self.obstacles
             if ob["x_world"] - self.world_offset + ob["width"] > self.car_x
         ]
-
+ 
         # Revisar fin de juego
         if self.lives <= 0:
             self.timer.stop()
@@ -134,7 +157,7 @@ class GameWidget(QWidget):
         elif self.world_offset >= self.goal_x:
             self.timer.stop()
             self.game_over_signal.emit("Felicidades, ganaste! Llegaste a la meta.")
-
+ 
         self.update()
 
     def car_y(self):
@@ -330,3 +353,55 @@ class GameWidget(QWidget):
         p.setBrush(QBrush(life_color))
         p.setPen(Qt.PenStyle.NoPen)
         p.drawRoundedRect(bar_x + 2, bar_y + 2, int((bar_width - 4) * lives_ratio), bar_height - 4, 6, 6)
+
+    def _prepare_spawns_from_avl(self):
+        """Genera una cola de obstáculos que aparecerán desde el borde derecho en orden aleatorio.
+        Usa las plantillas (dicts) del árbol y les asigna x_world > world_offset para que entren desde la derecha."""
+        if not self.avl_tree:
+            return
+        templates = self.avl_tree.to_obstacles()
+        if not templates:
+            return
+        templates_copy = [t.copy() for t in templates]
+        random.shuffle(templates_copy)
+        base_x = self.world_offset + max(self.width(), 800) + 100
+        spacing_min, spacing_extra = 160, 120
+        x = base_x
+        for t in templates_copy:
+            ob = t.copy()
+            ob["x_world"] = x + random.randint(0, spacing_extra)
+            if "lane_idx" not in ob:
+                ob["lane_idx"] = random.randint(0, len(self.lane_y)-1)
+            if "id" not in ob:
+                ob["id"] = random.randint(100000, 999999)
+            ob.setdefault("width", 32)
+            ob.setdefault("height", 32)
+            self._spawn_queue.append(ob)
+            x += spacing_min + random.randint(0, spacing_extra)
+        for ob in self._spawn_queue:
+            ob["x_world"] += random.randint(0, 60)
+ 
+    def register_new_obstacle(self, template: dict):
+        """Registrar un nuevo obstáculo: lo agrega como spawn a la derecha (no se moverá si !running)."""
+        ob = template.copy()
+        ob.setdefault("width", 32)
+        ob.setdefault("height", 32)
+        if "id" not in ob:
+            ob["id"] = random.randint(100000, 999999)
+        # Ubicar a la derecha del viewport actual para que 'entre' desde la derecha
+        ob["x_world"] = self.world_offset + max(self.width(), 800) + 150 + random.randint(0, 300)
+        if "lane_idx" not in ob:
+            ob["lane_idx"] = random.randint(0, len(self.lane_y)-1)
+        self._spawn_queue.append(ob)
+        # Añadir también a self.obstacles para feedback visual inmediato (no se moverá hasta start)
+        self.obstacles.append(ob)
+ 
+    def start(self):
+        """Iniciar la simulación: world_offset empezará a avanzar."""
+        # preparar spawns si aún no se hizo y empezar timer
+        if not self._prepared_spawns and self.avl_tree and self.avl_tree.root:
+            self._prepare_spawns_from_avl()
+            self._prepared_spawns = True
+        self.running = True
+        if not self.timer.isActive():
+            self.timer.start(30)

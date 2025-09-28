@@ -30,6 +30,12 @@ class MainWindow(QMainWindow):
     def start_game(self):
         self.stack.setCurrentWidget(self.gameplay)
         self.gameplay.game.setFocus()
+        # Iniciar simulacion del juego
+        try: 
+            self.gameplay.game.start()
+        except Exception:
+            pass
+        self.gameplay.game.setFocus()
 
     def exit_game(self):
         QApplication.quit()
