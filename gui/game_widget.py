@@ -358,29 +358,20 @@ class GameWidget(QWidget):
     def _prepare_spawns_from_avl(self):
         """Genera una cola de obstáculos que aparecerán desde el borde derecho en orden aleatorio.
         Usa las plantillas (dicts) del árbol y les asigna x_world > world_offset para que entren desde la derecha."""
-        if not self.avl_tree:
+        if not self.avl_tree or not self.avl_tree.root:
             return
+        # Obtener los obstáculos en orden (por su posición x_world)
         templates = self.avl_tree.to_obstacles()
         if not templates:
             return
-        templates_copy = [t.copy() for t in templates]
-        random.shuffle(templates_copy)
-        base_x = self.world_offset + max(self.width(), 800) + 100
-        spacing_min, spacing_extra = 160, 120
-        x = base_x
-        for t in templates_copy:
+
+        for t in templates:
             ob = t.copy()
-            ob["x_world"] = x + random.randint(0, spacing_extra)
-            if "lane_idx" not in ob:
-                ob["lane_idx"] = random.randint(0, len(self.lane_y)-1)
             if "id" not in ob:
                 ob["id"] = random.randint(100000, 999999)
             ob.setdefault("width", 32)
             ob.setdefault("height", 32)
             self._spawn_queue.append(ob)
-            x += spacing_min + random.randint(0, spacing_extra)
-        for ob in self._spawn_queue:
-            ob["x_world"] += random.randint(0, 60)
  
     def register_new_obstacle(self, template: dict):
         """Registrar un nuevo obstáculo: lo agrega como spawn a la derecha (no se moverá si !running)."""
